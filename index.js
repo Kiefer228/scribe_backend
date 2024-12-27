@@ -9,38 +9,39 @@ const app = express();
 // Middleware
 app.use(
     cors({
-        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Update with your frontend origins
+        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Frontend origins
         methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
         allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-        credentials: true, // Allow cookies or credentials if needed
+        credentials: true, // Allow cookies/credentials
     })
 );
 app.use(bodyParser.json());
 
+// Routes
 // Authentication Routes
 app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
 app.get("/auth/status", isAuthenticated);
 
 // Project Management Routes
-app.post("/api/project/createHierarchy", createHierarchy); // Register the createHierarchy route
+app.post("/api/project/createHierarchy", createHierarchy); // Hierarchy creation
 
-// Test route
+// Health Check Route
 app.get("/", (req, res) => {
     res.json({ message: "Backend is working!" });
 });
 
-// Error handling for undefined routes
+// Handle Undefined Routes
 app.use((req, res) => {
-    res.status(404).send({ error: "Route not found" });
+    res.status(404).json({ error: "Route not found" });
 });
 
-// Error handling middleware for other server errors
+// Global Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error("Unhandled server error:", err);
-    res.status(500).send({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error" });
 });
 
-// Start server
+// Start Server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
