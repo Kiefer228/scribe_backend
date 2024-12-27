@@ -7,7 +7,7 @@ const {
     authenticateGoogle,
     handleAuthCallback,
     isAuthenticated,
-} = require("./googleAuth"); // Your auth script
+} = require("./googleAuth"); // Authentication script
 const { createStorage } = require("./createStorage"); // Storage setup
 const { saveProject } = require("./saveProject");
 const { loadProject } = require("./loadProject");
@@ -15,10 +15,10 @@ const { loadProject } = require("./loadProject");
 const app = express();
 app.use(
     cors({
-        origin: "*", // Allow all origins for testing. Restrict to specific frontend URLs in production.
-        methods: ["GET", "POST"], // Allow only the methods you need
-        allowedHeaders: ["Content-Type"], // Allow only specific headers
-    }),
+        origin: "*", // Allow all origins for testing. Restrict in production.
+        methods: ["GET", "POST"], // Allow necessary methods
+        allowedHeaders: ["Content-Type"], // Restrict headers if needed
+    })
 );
 app.use(bodyParser.json());
 
