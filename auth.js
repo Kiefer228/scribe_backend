@@ -47,10 +47,9 @@ const handleAuthCallback = async (req, res) => {
         fs.writeFileSync(tokenFilePath, JSON.stringify(tokens, null, 2));
         console.log("Tokens saved to file:", tokenFilePath);
 
-        res.status(200).json({
-            message: "Authenticated successfully!",
-            tokens,
-        });
+        // Redirect back to your frontend with the access token and success indicator
+        const frontendUrl = "https://scribeaiassistant.netlify.app/"; // Frontend's URL
+        res.redirect(`${frontendUrl}?auth=true&accessToken=${tokens.access_token}`);
     } catch (error) {
         console.error("Error during OAuth callback processing:", error);
         res.status(500).send("Authentication failed.");
