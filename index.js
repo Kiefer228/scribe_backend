@@ -27,6 +27,11 @@ app.get("/", (req, res) => {
     res.json({ message: "Backend is working!" });
 });
 
+// Error handling for undefined routes
+app.use((req, res) => {
+    res.status(404).send({ error: "Route not found" });
+});
+
 // Start server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

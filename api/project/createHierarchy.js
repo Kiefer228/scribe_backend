@@ -1,3 +1,6 @@
+const { google } = require("googleapis");
+const oauth2Client = require("../../auth").oauth2Client; // Ensure oauth2Client is correctly imported
+
 const createHierarchy = async (req, res) => {
     const { projectName } = req.body;
     if (!projectName) {
@@ -18,6 +21,7 @@ const createHierarchy = async (req, res) => {
 
         if (existingRoot.data.files.length > 0) {
             rootFolderId = existingRoot.data.files[0].id;
+            console.log("Root folder found:", rootFolderId);
         } else {
             console.log("Creating root folder...");
             const rootFolder = await drive.files.create({
@@ -28,6 +32,7 @@ const createHierarchy = async (req, res) => {
                 fields: "id",
             });
             rootFolderId = rootFolder.data.id;
+            console.log("Root folder created:", rootFolderId);
         }
 
         console.log("Creating project folder...");
@@ -39,11 +44,12 @@ const createHierarchy = async (req, res) => {
             },
             fields: "id",
         });
+        console.log("Project folder created:", projectFolder.data.id);
 
         console.log("Creating subfolders...");
         const subfolders = ["Content", "Backups", "Context", "Metadata"];
         for (const subfolder of subfolders) {
-            await drive.files.create({
+            const subfolderResponse = await drive.files.create({
                 resource: {
                     name: subfolder,
                     mimeType: "application/vnd.google-apps.folder",
@@ -51,12 +57,18 @@ const createHierarchy = async (req, res) => {
                 },
                 fields: "id",
             });
+            console.log(`Subfolder "${subfolder}" created:`, subfolderResponse.data.id);
         }
 
         console.log("Hierarchy created successfully.");
         res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("Error creating folder hierarchy:", error.response?.data || error.message || error);
+        console.error(
+            "Error creating folder hierarchy:",
+            error.response?.data || error.message || error
+        );
         res.status(500).send("Failed to create hierarchy.");
     }
 };
+
+module.exports = { createHierarchy };
