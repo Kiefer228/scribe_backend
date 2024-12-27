@@ -51,6 +51,7 @@ const createHierarchy = async (req, res) => {
         });
         console.log("Project folder created:", projectFolder.data.id);
 
+        let contentFolderId;
         const subfolders = ["Content", "Backups", "Context", "Metadata"];
         for (const subfolder of subfolders) {
             const subfolderResponse = await drive.files.create({
@@ -62,6 +63,33 @@ const createHierarchy = async (req, res) => {
                 fields: "id",
             });
             console.log(`Subfolder "${subfolder}" created:`, subfolderResponse.data.id);
+
+            if (subfolder === "Content") {
+                contentFolderId = subfolderResponse.data.id; // Save the Content folder ID
+            }
+        }
+
+        // Create a text file in the Content folder
+        if (contentFolderId) {
+            console.log("Creating content.txt in Content folder...");
+            const fileMetadata = {
+                name: "content.txt",
+                mimeType: "text/plain",
+                parents: [contentFolderId],
+            };
+            const media = {
+                mimeType: "text/plain",
+                body: "This is the initial content of content.txt", // Initial content for the file
+            };
+
+            const contentFile = await drive.files.create({
+                resource: fileMetadata,
+                media,
+                fields: "id",
+            });
+            console.log("content.txt created:", contentFile.data.id);
+        } else {
+            console.warn("Content folder not found. Skipping content.txt creation.");
         }
 
         res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
