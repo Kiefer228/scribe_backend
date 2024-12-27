@@ -76,4 +76,4 @@ const isAuthenticated = (req, res) => {
     }
 };
 
-module.exports = { authenticateGoogle, handleAuthCallback, isAuthenticated };
+module.exports = { oauth2Client, authenticateGoogle, handleAuthCallback, isAuthenticated };

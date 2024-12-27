@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const oauth2Client = require("../../auth").oauth2Client;
+const { oauth2Client } = require("../../auth"); // Import authenticated OAuth2 client
 
 const createHierarchy = async (req, res) => {
     const { projectName } = req.body;
@@ -53,7 +53,7 @@ const createHierarchy = async (req, res) => {
 
         const subfolders = ["Content", "Backups", "Context", "Metadata"];
         for (const subfolder of subfolders) {
-            await drive.files.create({
+            const subfolderResponse = await drive.files.create({
                 resource: {
                     name: subfolder,
                     mimeType: "application/vnd.google-apps.folder",
@@ -61,7 +61,7 @@ const createHierarchy = async (req, res) => {
                 },
                 fields: "id",
             });
-            console.log(`Subfolder "${subfolder}" created.`);
+            console.log(`Subfolder "${subfolder}" created:`, subfolderResponse.data.id);
         }
 
         res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
