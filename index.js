@@ -8,7 +8,7 @@ const path = require("path");
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://your-backend.onrender.com/auth/callback'; // Update with your deployed backend URL
+const REDIRECT_URI = 'https://scribe-backend-qe3m.onrender.com/auth/callback'; // Update with your deployed backend URL
 
 // Initialize OAuth2 Client
 const oauth2Client = new google.auth.OAuth2(
@@ -22,7 +22,7 @@ const app = express();
 // Enable CORS for local and production frontends
 app.use(
     cors({
-        origin: ["http://localhost:3000", "https://your-frontend.netlify.app"], // Add your frontend origins
+        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Add your frontend origins
     })
 );
 app.use(bodyParser.json());
