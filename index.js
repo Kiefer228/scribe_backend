@@ -10,6 +10,9 @@ const app = express();
 app.use(
     cors({
         origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Update with your frontend origins
+        methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
+        allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+        credentials: true, // Allow cookies or credentials if needed
     })
 );
 app.use(bodyParser.json());
@@ -30,6 +33,12 @@ app.get("/", (req, res) => {
 // Error handling for undefined routes
 app.use((req, res) => {
     res.status(404).send({ error: "Route not found" });
+});
+
+// Error handling middleware for other server errors
+app.use((err, req, res, next) => {
+    console.error("Unhandled server error:", err);
+    res.status(500).send({ error: "Internal Server Error" });
 });
 
 // Start server
