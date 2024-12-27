@@ -7,6 +7,10 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URL; // Ensure this matches the URI registered in Google Cloud Console
 
+if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
+    console.error("Missing Google OAuth environment variables.");
+}
+
 // Initialize OAuth2 Client
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 

@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const oauth2Client = require("../../auth").oauth2Client; // Ensure oauth2Client is correctly imported
+const oauth2Client = require("../../auth").oauth2Client;
 
 const createHierarchy = async (req, res) => {
     const { projectName } = req.body;
@@ -9,7 +9,12 @@ const createHierarchy = async (req, res) => {
     }
 
     try {
-        console.log(`Received request to create project: ${projectName}`);
+        // Ensure the client has valid credentials
+        if (!oauth2Client.credentials || !oauth2Client.credentials.access_token) {
+            console.error("Google OAuth2 client is not authenticated.");
+            return res.status(401).send("Unauthorized. Please authenticate first.");
+        }
+
         const drive = google.drive({ version: "v3", auth: oauth2Client });
 
         console.log("Checking for root folder...");
@@ -46,10 +51,9 @@ const createHierarchy = async (req, res) => {
         });
         console.log("Project folder created:", projectFolder.data.id);
 
-        console.log("Creating subfolders...");
         const subfolders = ["Content", "Backups", "Context", "Metadata"];
         for (const subfolder of subfolders) {
-            const subfolderResponse = await drive.files.create({
+            await drive.files.create({
                 resource: {
                     name: subfolder,
                     mimeType: "application/vnd.google-apps.folder",
@@ -57,16 +61,12 @@ const createHierarchy = async (req, res) => {
                 },
                 fields: "id",
             });
-            console.log(`Subfolder "${subfolder}" created:`, subfolderResponse.data.id);
+            console.log(`Subfolder "${subfolder}" created.`);
         }
 
-        console.log("Hierarchy created successfully.");
         res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error(
-            "Error creating folder hierarchy:",
-            error.response?.data || error.message || error
-        );
+        console.error("Error creating folder hierarchy:", error.response?.data || error.message);
         res.status(500).send("Failed to create hierarchy.");
     }
 };
