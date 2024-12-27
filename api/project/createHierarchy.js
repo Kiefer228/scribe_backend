@@ -66,8 +66,11 @@ const createHierarchy = async (req, res) => {
 
         res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("Error creating folder hierarchy:", error.response?.data || error.message);
-        res.status(500).send("Failed to create hierarchy.");
+        console.error(
+            "Error creating folder hierarchy:",
+            error.response?.data || error.message || error
+        );
+        res.status(500).send("Failed to create hierarchy. Check your Google Drive API permissions.");
     }
 };
 
