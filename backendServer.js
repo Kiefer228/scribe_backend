@@ -13,7 +13,13 @@ const { saveProject } = require("./saveProject");
 const { loadProject } = require("./loadProject");
 
 const app = express();
-app.use(cors());
+app.use(
+    cors({
+        origin: "*", // Allow all origins for testing. Restrict to specific frontend URLs in production.
+        methods: ["GET", "POST"], // Allow only the methods you need
+        allowedHeaders: ["Content-Type"], // Allow only specific headers
+    }),
+);
 app.use(bodyParser.json());
 
 // Define API routes
