@@ -1,16 +1,15 @@
-const { google } = require("googleapis");
-const oauth2Client = require("../../auth").oauth2Client; // Ensure oauth2Client is exported from auth.js
-
 const createHierarchy = async (req, res) => {
     const { projectName } = req.body;
     if (!projectName) {
+        console.error("Project name is missing.");
         return res.status(400).send("Project name is required.");
     }
 
     try {
+        console.log(`Received request to create project: ${projectName}`);
         const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-        // Ensure the root folder "Scribe" exists
+        console.log("Checking for root folder...");
         let rootFolderId;
         const existingRoot = await drive.files.list({
             q: "name='Scribe' and mimeType='application/vnd.google-apps.folder'",
@@ -20,6 +19,7 @@ const createHierarchy = async (req, res) => {
         if (existingRoot.data.files.length > 0) {
             rootFolderId = existingRoot.data.files[0].id;
         } else {
+            console.log("Creating root folder...");
             const rootFolder = await drive.files.create({
                 resource: {
                     name: "Scribe",
@@ -30,7 +30,7 @@ const createHierarchy = async (req, res) => {
             rootFolderId = rootFolder.data.id;
         }
 
-        // Create the project folder
+        console.log("Creating project folder...");
         const projectFolder = await drive.files.create({
             resource: {
                 name: projectName,
@@ -40,7 +40,7 @@ const createHierarchy = async (req, res) => {
             fields: "id",
         });
 
-        // Create subfolders inside the project folder
+        console.log("Creating subfolders...");
         const subfolders = ["Content", "Backups", "Context", "Metadata"];
         for (const subfolder of subfolders) {
             await drive.files.create({
@@ -53,13 +53,10 @@ const createHierarchy = async (req, res) => {
             });
         }
 
-        res.status(200).send({
-            message: `Hierarchy for project "${projectName}" created successfully.`,
-        });
+        console.log("Hierarchy created successfully.");
+        res.status(200).send({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("Error creating folder hierarchy:", error);
+        console.error("Error creating folder hierarchy:", error.response?.data || error.message || error);
         res.status(500).send("Failed to create hierarchy.");
     }
 };
-
-module.exports = { createHierarchy };
