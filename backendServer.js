@@ -15,71 +15,37 @@ const { loadProject } = require("./loadProject");
 const app = express();
 app.use(
     cors({
-        origin: "*", // Allow all origins for testing. Restrict in production.
-        methods: ["GET", "POST"], // Allow necessary methods
-        allowedHeaders: ["Content-Type"], // Restrict headers if needed
+        origin: "http://localhost:3000", // Frontend origin for local development
     })
 );
 app.use(bodyParser.json());
 
-// Define API routes
-const router = express.Router();
+// Authentication routes
+app.get("/auth/google", authenticateGoogle); // Initiate Google OAuth
+app.get("/auth/callback", handleAuthCallback); // Handle Google OAuth callback
+app.get("/auth/status", isAuthenticated); // Check authentication status
 
-// Google Authentication
-router.get("/auth", async (req, res) => {
+// Project management routes
+app.post("/projects/save", async (req, res) => {
+    const { projectData } = req.body;
     try {
-        const authUrl = authenticateGoogle();
-        res.json({ authUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const result = await saveProject(projectData);
+        res.status(200).json({ message: "Project saved successfully!", result });
+    } catch (error) {
+        res.status(500).json({ message: "Error saving project", error });
     }
 });
 
-router.get("/auth/callback", async (req, res) => {
+app.get("/projects/load/:id", async (req, res) => {
+    const projectId = req.params.id;
     try {
-        const tokens = await handleAuthCallback(req.query.code);
-        res.json({ tokens });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const project = await loadProject(projectId);
+        res.status(200).json({ project });
+    } catch (error) {
+        res.status(500).json({ message: "Error loading project", error });
     }
 });
 
-// Google Drive Setup
-router.post("/setup", async (req, res) => {
-    try {
-        const result = await createStorage();
-        res.json({ result });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Save Project
-router.post("/project/save", async (req, res) => {
-    try {
-        const { projectName, fileContent } = req.body;
-        const result = await saveProject(projectName, fileContent);
-        res.json({ result });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Load Project
-router.get("/project/load", async (req, res) => {
-    try {
-        const { projectName } = req.query;
-        const result = await loadProject(projectName);
-        res.json({ result });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Use the router
-app.use("/api", router);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Start server
+const PORT = 4000; // Ensure no conflict with frontend dev server
+app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));
