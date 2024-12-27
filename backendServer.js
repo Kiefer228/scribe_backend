@@ -2,6 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+const PORT = process.env.PORT;
 
 const {
     authenticateGoogle,
@@ -47,5 +51,5 @@ app.get("/projects/load/:id", async (req, res) => {
 });
 
 // Start server
-const PORT = 4000; // Ensure no conflict with frontend dev server
+const PORT = process.env.PORT || 4000; // Ensure no conflict with frontend dev server
 app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));
