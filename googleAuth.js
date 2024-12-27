@@ -2,7 +2,7 @@ const { google } = require('googleapis');
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'http://localhost:4000/auth/callback'; // Backend callback URL
+const REDIRECT_URI = 'https://scribe-backend-qe3m.onrender.com/auth/callback'; // Updated to deployed backend URL
 
 const oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
