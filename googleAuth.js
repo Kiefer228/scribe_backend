@@ -28,7 +28,7 @@ const authenticateGoogle = (req, res) => {
 const handleAuthCallback = async (req, res) => {
     const code = req.query.code; // Authorization code from Google
     if (!code) {
-        return res.status(400).send('Authorization code is missing.');
+        return res.status(400).send("Authorization code is missing.");
     }
 
     try {
@@ -37,26 +37,40 @@ const handleAuthCallback = async (req, res) => {
         oauth2Client.setCredentials(tokens);
 
         // Save tokens to a temporary file
-        const tokenFilePath = path.join(__dirname, 'token.json');
+        const tokenFilePath = path.join(__dirname, "token.json");
         fs.writeFileSync(tokenFilePath, JSON.stringify(tokens, null, 2));
 
         // Initialize Google Drive API
-        const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        const drive = google.drive({ version: "v3", auth: oauth2Client });
 
         // Upload the token file to Google Drive
         const fileMetadata = {
-            name: 'google_auth_token.json',
-            mimeType: 'application/json',
+            name: "google_auth_token.json",
+            mimeType: "application/json",
         };
         const media = {
-            mimeType: 'application/json',
+            mimeType: "application/json",
             body: fs.createReadStream(tokenFilePath),
         };
         const response = await drive.files.create({
             resource: fileMetadata,
             media: media,
-            fields: 'id',
+            fields: "id",
         });
+
+        console.log("Token stored in Google Drive with file ID:", response.data.id);
+
+        // Clean up the temporary file
+        fs.unlinkSync(tokenFilePath);
+
+        // Redirect back to your frontend with a success indicator
+        const frontendUrl = "http://localhost:3000/dashboard"; // Update with your frontend's URL
+        res.redirect(`${frontendUrl}?auth=true&fileId=${response.data.id}`);
+    } catch (error) {
+        console.error("Error during authentication callback:", error);
+        res.status(500).send("Authentication failed.");
+    }
+};
 
         console.log('Token stored in Google Drive with file ID:', response.data.id);
 
