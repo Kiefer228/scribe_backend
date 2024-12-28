@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const { oauth2Client } = require("../../auth"); // Import authenticated OAuth2 client
+const { oauth2Client } = require("../auth"); // Import authenticated OAuth2 client
 
 const saveProject = async (req, res) => {
     const { projectName, content } = req.body;
