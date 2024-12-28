@@ -19,7 +19,7 @@ const saveProject = async (req, res) => {
 
         console.log("[saveProject] Searching for project folder...");
         const projectFolderResponse = await drive.files.list({
-            q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder'`,
+            q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: "files(id, name)",
         });
 
@@ -32,7 +32,7 @@ const saveProject = async (req, res) => {
 
         console.log("[saveProject] Searching for content.txt in project folder...");
         const contentFileResponse = await drive.files.list({
-            q: `'${projectFolderId}' in parents and name='content.txt' and mimeType='text/plain'`,
+            q: `'${projectFolderId}' in parents and name='content.txt' and mimeType='text/plain' and trashed=false`,
             fields: "files(id, name)",
         });
 
@@ -54,6 +54,7 @@ const saveProject = async (req, res) => {
             media,
         });
 
+        console.log("[saveProject] Successfully updated content.");
         res.status(200).json({ message: "Project content updated successfully." });
     } catch (error) {
         console.error("[saveProject] Error saving project:", error.response?.data || error.message);

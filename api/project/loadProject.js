@@ -19,7 +19,7 @@ const loadProject = async (req, res) => {
 
         console.log("[loadProject] Searching for project folder...");
         const projectFolderResponse = await drive.files.list({
-            q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder'`,
+            q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: "files(id, name)",
         });
 
@@ -32,7 +32,7 @@ const loadProject = async (req, res) => {
 
         console.log("[loadProject] Searching for content.txt in project folder...");
         const contentFileResponse = await drive.files.list({
-            q: `'${projectFolderId}' in parents and name='content.txt' and mimeType='text/plain'`,
+            q: `'${projectFolderId}' in parents and name='content.txt' and mimeType='text/plain' and trashed=false`,
             fields: "files(id, name)",
         });
 
@@ -49,6 +49,7 @@ const loadProject = async (req, res) => {
             alt: "media",
         });
 
+        console.log("[loadProject] Successfully retrieved content.");
         res.status(200).json({ content: contentResponse.data });
     } catch (error) {
         console.error("[loadProject] Error loading project:", error.response?.data || error.message);
