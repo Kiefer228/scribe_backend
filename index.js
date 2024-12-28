@@ -7,9 +7,9 @@ const {
     isAuthenticated,
     logout, // Import logout function
 } = require("./auth");
-const createHierarchy = require("./api/project/createHierarchy"); // Import createHierarchy route
-const { loadProject } = require("./api/project/loadProject"); // Import loadProject route
-const { saveProject } = require("./api/project/saveProject"); // Import saveProject route
+const createHierarchy = require(".././api/project/createHierarchy"); // Import createHierarchy route
+const { loadProject } = require(".././api/project/loadProject"); // Import loadProject route
+const { saveProject } = require(".././api/project/saveProject"); // Import saveProject route
 
 const app = express();
 
