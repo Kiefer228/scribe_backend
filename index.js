@@ -1,79 +1,57 @@
-const { google } = require("googleapis");
-const { oauth2Client } = require("./api/auth"); // Import authenticated OAuth2 client
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const {
+    authenticateGoogle,
+    handleAuthCallback,
+    isAuthenticated,
+    logout, // Import logout function
+} = require("./auth");
+const createHierarchy = require("./api/project/createHierarchy"); // Import createHierarchy route
+const { loadProject } = require("./api/project/loadProject"); // Import loadProject route
+const { saveProject } = require("./api/project/saveProject"); // Import saveProject route
 
-const saveProject = async (req, res) => {
-    const { projectName, content } = req.body;
+const app = express();
 
-    if (!projectName || content === undefined) {
-        console.error("[saveProject] Missing project name or content.");
-        return res.status(400).json({ error: "Project name and content are required." });
-    }
+// Middleware
+app.use(
+    cors({
+        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Frontend origins
+        methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
+        allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+        credentials: true, // Allow cookies/credentials
+    })
+);
+app.use(bodyParser.json());
 
-    try {
-        if (!oauth2Client.credentials?.access_token) {
-            console.error("[saveProject] Google OAuth2 client is not authenticated.");
-            return res.status(401).json({ error: "Unauthorized. Please authenticate first." });
-        }
+// Routes
+// Authentication Routes
+app.get("/auth/google", authenticateGoogle); // Google OAuth initiation
+app.get("/auth/callback", handleAuthCallback); // Google OAuth callback
+app.get("/auth/status", isAuthenticated); // Check authentication status
+app.post("/auth/logout", logout); // Logout route
 
-        const drive = google.drive({ version: "v3", auth: oauth2Client });
+// Project Management Routes
+app.post("/api/project/createHierarchy", createHierarchy); // Hierarchy creation
+app.post("/api/project/load", loadProject); // Load project route
+app.post("/api/project/save", saveProject); // Save project route
 
-        console.log("[saveProject] Searching for project folder...");
-        const projectFolderResponse = await drive.files.list({
-            q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: "files(id, name)",
-        });
+// Health Check Route
+app.get("/", (req, res) => {
+    res.json({ message: "Backend is working!" });
+});
 
-        if (!projectFolderResponse.data.files.length) {
-            console.log(`[saveProject] Project folder "${projectName}" not found. Creating new folder...`);
-            const folderResponse = await drive.files.create({
-                requestBody: {
-                    name: projectName,
-                    mimeType: "application/vnd.google-apps.folder",
-                },
-            });
-            var projectFolderId = folderResponse.data.id;
-        } else {
-            var projectFolderId = projectFolderResponse.data.files[0].id;
-        }
+// Handle Undefined Routes
+app.use((req, res) => {
+    res.status(404).json({ error: "Route not found" });
+});
 
-        console.log("[saveProject] Searching for content.txt in project folder...");
-        const contentFileResponse = await drive.files.list({
-            q: `'${projectFolderId}' in parents and name='content.txt' and mimeType='text/plain' and trashed=false`,
-            fields: "files(id, name)",
-        });
+// Global Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error("Unhandled server error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+});
 
-        if (!contentFileResponse.data.files.length) {
-            console.log("[saveProject] Creating new content.txt...");
-            await drive.files.create({
-                requestBody: {
-                    name: "content.txt",
-                    mimeType: "text/plain",
-                    parents: [projectFolderId],
-                },
-                media: {
-                    mimeType: "text/plain",
-                    body: content,
-                },
-            });
-        } else {
-            const contentFileId = contentFileResponse.data.files[0].id;
-
-            console.log("[saveProject] Updating content.txt...");
-            await drive.files.update({
-                fileId: contentFileId,
-                media: {
-                    mimeType: "text/plain",
-                    body: content,
-                },
-            });
-        }
-
-        console.log("[saveProject] Successfully saved content.");
-        res.status(200).json({ message: "Project content saved successfully." });
-    } catch (error) {
-        console.error("[saveProject] Error saving project:", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to save project." });
-    }
-};
-
-module.exports = { saveProject };
+// Start Server with Specified PORT
+const PORT = process.env.PORT || 5000; // Use PORT from environment or default to 5000
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
