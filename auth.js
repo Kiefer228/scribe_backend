@@ -39,6 +39,21 @@ const saveTokens = (tokens) => {
     }
 };
 
+// Helper: Remove tokens from storage
+const removeTokens = () => {
+    try {
+        const tokenFilePath = path.join(__dirname, "token.json");
+        if (fs.existsSync(tokenFilePath)) {
+            fs.unlinkSync(tokenFilePath); // Delete the token file
+            console.log("[Logout] Tokens removed successfully.");
+        } else {
+            console.log("[Logout] No tokens found to remove.");
+        }
+    } catch (error) {
+        console.error("[Logout] Error removing tokens:", error);
+    }
+};
+
 // Validate tokens and refresh if necessary
 const validateTokens = async () => {
     try {
@@ -111,9 +126,21 @@ const handleAuthCallback = async (req, res) => {
     }
 };
 
+// Logout and remove tokens
+const logout = (req, res) => {
+    try {
+        removeTokens();
+        res.status(200).json({ message: "Successfully logged out." });
+    } catch (error) {
+        console.error("[Logout] Error during logout:", error);
+        res.status(500).json({ message: "Failed to log out. Please try again." });
+    }
+};
+
 module.exports = {
     oauth2Client,
     authenticateGoogle,
     handleAuthCallback,
     isAuthenticated,
+    logout, // Export the logout function
 };

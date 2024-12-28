@@ -1,8 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { authenticateGoogle, handleAuthCallback, isAuthenticated } = require("./auth");
-const { createHierarchy } = require("./api/project/createHierarchy"); // Import createHierarchy route
+const {
+    authenticateGoogle,
+    handleAuthCallback,
+    isAuthenticated,
+    logout, // Import logout function
+} = require("./auth");
+const createHierarchy = require("./api/project/createHierarchy"); // Import createHierarchy route
+const { loadProject } = require("./api/project/loadProject"); // Import loadProject route
+const { saveProject } = require("./api/project/saveProject"); // Import saveProject route
 
 const app = express();
 
@@ -19,12 +26,15 @@ app.use(bodyParser.json());
 
 // Routes
 // Authentication Routes
-app.get("/auth/google", authenticateGoogle);
-app.get("/auth/callback", handleAuthCallback);
-app.get("/auth/status", isAuthenticated);
+app.get("/auth/google", authenticateGoogle); // Google OAuth initiation
+app.get("/auth/callback", handleAuthCallback); // Google OAuth callback
+app.get("/auth/status", isAuthenticated); // Check authentication status
+app.post("/auth/logout", logout); // Logout route
 
 // Project Management Routes
 app.post("/api/project/createHierarchy", createHierarchy); // Hierarchy creation
+app.post("/api/project/load", loadProject); // Load project route
+app.post("/api/project/save", saveProject); // Save project route
 
 // Health Check Route
 app.get("/", (req, res) => {

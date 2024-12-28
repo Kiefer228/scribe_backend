@@ -37,25 +37,35 @@ const saveProject = async (req, res) => {
         });
 
         if (!contentFileResponse.data.files.length) {
-            console.error("[saveProject] content.txt not found in project folder.");
-            return res.status(404).json({ error: "Project content not found." });
+            console.log("[saveProject] Creating new content.txt...");
+            await drive.files.create({
+                requestBody: {
+                    name: "content.txt",
+                    mimeType: "text/plain",
+                    parents: [projectFolderId],
+                },
+                media: {
+                    mimeType: "text/plain",
+                    body: content,
+                },
+            });
+        } else {
+            const contentFileId = contentFileResponse.data.files[0].id;
+
+            console.log("[saveProject] Updating content.txt...");
+            const media = {
+                mimeType: "text/plain",
+                body: content,
+            };
+
+            await drive.files.update({
+                fileId: contentFileId,
+                media,
+            });
         }
 
-        const contentFileId = contentFileResponse.data.files[0].id;
-
-        console.log("[saveProject] Updating content.txt...");
-        const media = {
-            mimeType: "text/plain",
-            body: content,
-        };
-
-        await drive.files.update({
-            fileId: contentFileId,
-            media,
-        });
-
-        console.log("[saveProject] Successfully updated content.");
-        res.status(200).json({ message: "Project content updated successfully." });
+        console.log("[saveProject] Successfully saved content.");
+        res.status(200).json({ message: "Project content saved successfully." });
     } catch (error) {
         console.error("[saveProject] Error saving project:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to save project." });

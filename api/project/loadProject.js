@@ -49,7 +49,6 @@ const loadProject = async (req, res) => {
             alt: "media",
         });
 
-        console.log("[loadProject] Successfully retrieved content.");
         res.status(200).json({ content: contentResponse.data });
     } catch (error) {
         console.error("[loadProject] Error loading project:", error.response?.data || error.message);
