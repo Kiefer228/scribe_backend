@@ -24,11 +24,17 @@ const saveProject = async (req, res) => {
         });
 
         if (!projectFolderResponse.data.files.length) {
-            console.error(`[saveProject] Project folder "${projectName}" not found.`);
-            return res.status(404).json({ error: "Project not found." });
+            console.log(`[saveProject] Project folder "${projectName}" not found. Creating new folder...`);
+            const folderResponse = await drive.files.create({
+                requestBody: {
+                    name: projectName,
+                    mimeType: "application/vnd.google-apps.folder",
+                },
+            });
+            var projectFolderId = folderResponse.data.id;
+        } else {
+            var projectFolderId = projectFolderResponse.data.files[0].id;
         }
-
-        const projectFolderId = projectFolderResponse.data.files[0].id;
 
         console.log("[saveProject] Searching for content.txt in project folder...");
         const contentFileResponse = await drive.files.list({
@@ -53,14 +59,12 @@ const saveProject = async (req, res) => {
             const contentFileId = contentFileResponse.data.files[0].id;
 
             console.log("[saveProject] Updating content.txt...");
-            const media = {
-                mimeType: "text/plain",
-                body: content,
-            };
-
             await drive.files.update({
                 fileId: contentFileId,
-                media,
+                media: {
+                    mimeType: "text/plain",
+                    body: content,
+                },
             });
         }
 
