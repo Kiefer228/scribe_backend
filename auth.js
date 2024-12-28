@@ -20,10 +20,8 @@ const loadTokens = () => {
         if (fs.existsSync(tokenFilePath)) {
             const tokens = JSON.parse(fs.readFileSync(tokenFilePath, "utf8"));
             oauth2Client.setCredentials(tokens);
-            console.log("Tokens loaded from file.");
             return tokens;
         }
-        console.log("No token file found.");
         return null;
     } catch (error) {
         console.error("Error loading tokens:", error);
@@ -36,24 +34,59 @@ const saveTokens = (tokens) => {
     try {
         const tokenFilePath = path.join(__dirname, "token.json");
         fs.writeFileSync(tokenFilePath, JSON.stringify(tokens, null, 2));
-        console.log("Tokens saved to file:", tokenFilePath);
     } catch (error) {
         console.error("Error saving tokens:", error);
+    }
+};
+
+// Validate tokens and refresh if necessary
+const validateTokens = async () => {
+    try {
+        const tokens = loadTokens();
+        if (!tokens || !tokens.access_token) {
+            return false;
+        }
+
+        // Test API call to validate the access token
+        oauth2Client.setCredentials(tokens);
+        try {
+            await oauth2Client.getAccessToken();
+            return true;
+        } catch {
+            console.log("Access token expired. Attempting to refresh...");
+            if (tokens.refresh_token) {
+                const refreshedTokens = await oauth2Client.refreshAccessToken();
+                oauth2Client.setCredentials(refreshedTokens.credentials);
+                saveTokens(refreshedTokens.credentials);
+                return true;
+            } else {
+                console.log("No refresh token available.");
+                return false;
+            }
+        }
+    } catch (error) {
+        console.error("Error validating tokens:", error);
+        return false;
+    }
+};
+
+// Check if user is authenticated
+const isAuthenticated = async (req, res) => {
+    const isValid = await validateTokens();
+    if (isValid) {
+        res.status(200).json({ authenticated: true });
+    } else {
+        res.status(401).json({ authenticated: false });
     }
 };
 
 // Generate Google OAuth URL
 const authenticateGoogle = (req, res) => {
     try {
-        if (oauth2Client.credentials && oauth2Client.credentials.access_token) {
-            console.log("User is already authenticated.");
-            return res.redirect("https://scribeaiassistant.netlify.app/?auth=true");
-        }
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: "offline",
             scope: ["https://www.googleapis.com/auth/drive.file"],
         });
-        console.log("Redirecting to Google OAuth URL:", authUrl);
         res.redirect(authUrl);
     } catch (error) {
         console.error("Error generating Google OAuth URL:", error);
@@ -71,42 +104,10 @@ const handleAuthCallback = async (req, res) => {
         const { tokens } = await oauth2Client.getToken(code);
         oauth2Client.setCredentials(tokens);
         saveTokens(tokens);
-        console.log("User authenticated successfully.");
         res.redirect("https://scribeaiassistant.netlify.app/?auth=true");
     } catch (error) {
         console.error("Error during OAuth callback:", error);
         res.status(500).send("Authentication failed.");
-    }
-};
-
-// Refresh access token if needed
-const refreshAccessToken = async () => {
-    try {
-        if (oauth2Client.credentials && oauth2Client.credentials.refresh_token) {
-            const { credentials } = await oauth2Client.refreshAccessToken();
-            oauth2Client.setCredentials(credentials);
-            saveTokens(credentials);
-            console.log("Access token refreshed successfully.");
-            return credentials.access_token;
-        } else {
-            console.error("No refresh token available.");
-            return null;
-        }
-    } catch (error) {
-        console.error("Error refreshing access token:", error);
-        return null;
-    }
-};
-
-// Check if user is authenticated
-const isAuthenticated = (req, res) => {
-    const tokens = loadTokens();
-    if (tokens && tokens.access_token) {
-        console.log("User is authenticated.");
-        res.status(200).json({ authenticated: true });
-    } else {
-        console.log("User is not authenticated.");
-        res.status(401).json({ authenticated: false });
     }
 };
 
@@ -115,5 +116,4 @@ module.exports = {
     authenticateGoogle,
     handleAuthCallback,
     isAuthenticated,
-    refreshAccessToken,
 };
