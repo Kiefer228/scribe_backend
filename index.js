@@ -63,16 +63,14 @@ app.post("/api/project/createHierarchy", async (req, res) => {
 app.get("/api/project/load", async (req, res) => {
     const { projectName } = req.query;
 
-    if (!projectName) {
-        console.error("[loadProject] Missing projectName query parameter.");
-        return res.status(400).json({ error: "Project name is required." });
-    }
-
     try {
-        const content = await loadProject(projectName); // Pass projectName directly
+        const content = await loadProject(projectName); // Pass projectName or load the first available
         res.status(200).json({ content });
     } catch (error) {
         console.error("Error loading project:", error.message || error);
+        if (error.message.includes("No projects found")) {
+            return res.status(404).json({ error: "No projects available. Please create a new project." });
+        }
         res.status(500).json({ error: "Failed to load project." });
     }
 });
