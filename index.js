@@ -14,15 +14,27 @@ const { saveProject } = require("./api/project/saveProject");
 const app = express();
 
 // Middleware
+const allowedOrigins = ["http://localhost:3000", "https://scribeaiassistant.netlify.app"];
 app.use(
     cors({
-        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"],
-        methods: ["GET", "POST"], // Allow POST requests
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        methods: ["GET", "POST", "OPTIONS"], // Include OPTIONS for preflight requests
         allowedHeaders: ["Content-Type", "Authorization"],
-        credentials: true,
+        credentials: true, // Allow cookies and credentials
     })
 );
-app.use(bodyParser.json()); // Parse JSON request bodies
+
+// Handle Preflight Requests Globally
+app.options("*", cors());
+
+// Parse JSON request bodies
+app.use(bodyParser.json());
 
 // Routes
 // Authentication Routes
