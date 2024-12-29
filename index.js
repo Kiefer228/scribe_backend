@@ -64,14 +64,15 @@ app.get("/api/project/load", async (req, res) => {
     const { projectName } = req.query;
 
     if (!projectName) {
+        console.error("[loadProject] Missing projectName query parameter.");
         return res.status(400).json({ error: "Project name is required." });
     }
 
     try {
-        const content = await loadProject({ projectName });
+        const content = await loadProject(projectName); // Pass projectName directly
         res.status(200).json({ content });
     } catch (error) {
-        console.error("Error loading project:", error);
+        console.error("Error loading project:", error.message || error);
         res.status(500).json({ error: "Failed to load project." });
     }
 });
@@ -87,7 +88,7 @@ app.post("/api/project/save", async (req, res) => {
         await saveProject({ projectName, content });
         res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
     } catch (error) {
-        console.error("Error saving project:", error);
+        console.error("Error saving project:", error.message || error);
         res.status(500).json({ error: "Failed to save project." });
     }
 });
@@ -104,7 +105,7 @@ app.use((req, res) => {
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
-    console.error("Unhandled server error:", err);
+    console.error("Unhandled server error:", err.message || err);
     res.status(500).json({ error: "Internal Server Error" });
 });
 
