@@ -2,7 +2,7 @@ const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
 const createHierarchy = async (req, res) => {
-    const { projectName } = req.query;
+    const { projectName } = req.body; // Changed to req.body for POST requests
 
     if (!projectName) {
         console.error("Project name is missing.");

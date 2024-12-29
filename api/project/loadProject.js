@@ -2,7 +2,7 @@ const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
 const loadProject = async (req, res) => {
-    const { projectName } = req.query;
+    const { projectName } = req.query; // Load remains a GET operation
 
     if (!projectName) {
         console.error("[loadProject] Project name is missing.");

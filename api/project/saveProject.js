@@ -2,7 +2,7 @@ const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
 const saveProject = async (req, res) => {
-    const { projectName, content } = req.query;
+    const { projectName, content } = req.body; // Changed to req.body for POST requests
 
     if (!projectName || content === undefined) {
         console.error("[saveProject] Missing project name or content.");
@@ -31,6 +31,7 @@ const saveProject = async (req, res) => {
                     name: projectName,
                     mimeType: "application/vnd.google-apps.folder",
                 },
+                fields: "id",
             });
             projectFolderId = folderResponse.data.id;
         } else {

@@ -142,5 +142,5 @@ module.exports = {
     authenticateGoogle,
     handleAuthCallback,
     isAuthenticated,
-    logout, // Export the logout function
+    logout,
 };

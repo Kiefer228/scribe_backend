@@ -17,23 +17,23 @@ const app = express();
 app.use(
     cors({
         origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"],
-        methods: ["GET"], // Restrict to GET requests only
+        methods: ["GET", "POST"], // Allow POST requests
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
     })
 );
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // Parse JSON request bodies
 
 // Routes
 // Authentication Routes
 app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
 app.get("/auth/status", isAuthenticated);
-app.get("/auth/logout", logout); // Changed to GET
+app.post("/auth/logout", logout);
 
 // Project Management Routes
-app.get("/api/project/createHierarchy", async (req, res) => {
-    const { projectName } = req.query;
+app.post("/api/project/createHierarchy", async (req, res) => {
+    const { projectName } = req.body;
 
     if (!projectName) {
         return res.status(400).json({ error: "Project name is required." });
@@ -64,8 +64,8 @@ app.get("/api/project/load", async (req, res) => {
     }
 });
 
-app.get("/api/project/save", async (req, res) => {
-    const { projectName, content } = req.query;
+app.post("/api/project/save", async (req, res) => {
+    const { projectName, content } = req.body;
 
     if (!projectName || !content) {
         return res.status(400).json({ error: "Project name and content are required." });
