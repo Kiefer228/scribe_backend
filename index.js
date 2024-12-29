@@ -5,36 +5,36 @@ const {
     authenticateGoogle,
     handleAuthCallback,
     isAuthenticated,
-    logout, // Import logout function
+    logout,
 } = require("./api/auth");
-const createHierarchy = require("./api/project/createHierarchy");
-const { loadProject } = require("./api/project/loadProject"); // Import loadProject route
-const { saveProject } = require("./api/project/saveProject"); // Import saveProject route
+const { createHierarchy } = require("./api/project/createHierarchy");
+const { loadProject } = require("./api/project/loadProject");
+const { saveProject } = require("./api/project/saveProject");
 
 const app = express();
 
 // Middleware
 app.use(
     cors({
-        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"], // Frontend origins
-        methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
-        allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-        credentials: true, // Allow cookies/credentials
+        origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"],
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
     })
 );
 app.use(bodyParser.json());
 
 // Routes
 // Authentication Routes
-app.get("/auth/google", authenticateGoogle); // Google OAuth initiation
-app.get("/auth/callback", handleAuthCallback); // Google OAuth callback
-app.get("/auth/status", isAuthenticated); // Check authentication status
-app.post("/auth/logout", logout); // Logout route
+app.get("/auth/google", authenticateGoogle);
+app.get("/auth/callback", handleAuthCallback);
+app.get("/auth/status", isAuthenticated);
+app.post("/auth/logout", logout);
 
 // Project Management Routes
-app.post("/api/project/createHierarchy", createHierarchy); // Hierarchy creation
-app.post("/api/project/load", loadProject); // Load project route
-app.post("/api/project/save", saveProject); // Save project route
+app.post("/api/project/createHierarchy", createHierarchy);
+app.post("/api/project/load", loadProject);
+app.post("/api/project/save", saveProject);
 
 // Health Check Route
 app.get("/", (req, res) => {
@@ -53,5 +53,5 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server with Specified PORT
-const PORT = process.env.PORT || 5000; // Use PORT from environment or default to 5000
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
