@@ -17,7 +17,7 @@ const app = express();
 app.use(
     cors({
         origin: ["http://localhost:3000", "https://scribeaiassistant.netlify.app"],
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        methods: ["GET"], // Restrict to GET requests only
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
     })
@@ -29,12 +29,56 @@ app.use(bodyParser.json());
 app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
 app.get("/auth/status", isAuthenticated);
-app.post("/auth/logout", logout);
+app.get("/auth/logout", logout); // Changed to GET
 
 // Project Management Routes
-app.post("/api/project/createHierarchy", createHierarchy);
-app.post("/api/project/load", loadProject);
-app.post("/api/project/save", saveProject);
+app.get("/api/project/createHierarchy", async (req, res) => {
+    const { projectName } = req.query;
+
+    if (!projectName) {
+        return res.status(400).json({ error: "Project name is required." });
+    }
+
+    try {
+        await createHierarchy({ projectName });
+        res.status(200).json({ message: `Hierarchy for "${projectName}" created successfully.` });
+    } catch (error) {
+        console.error("Error creating project hierarchy:", error);
+        res.status(500).json({ error: "Failed to create project hierarchy." });
+    }
+});
+
+app.get("/api/project/load", async (req, res) => {
+    const { projectName } = req.query;
+
+    if (!projectName) {
+        return res.status(400).json({ error: "Project name is required." });
+    }
+
+    try {
+        const content = await loadProject({ projectName });
+        res.status(200).json({ content });
+    } catch (error) {
+        console.error("Error loading project:", error);
+        res.status(500).json({ error: "Failed to load project." });
+    }
+});
+
+app.get("/api/project/save", async (req, res) => {
+    const { projectName, content } = req.query;
+
+    if (!projectName || !content) {
+        return res.status(400).json({ error: "Project name and content are required." });
+    }
+
+    try {
+        await saveProject({ projectName, content });
+        res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
+    } catch (error) {
+        console.error("Error saving project:", error);
+        res.status(500).json({ error: "Failed to save project." });
+    }
+});
 
 // Health Check Route
 app.get("/", (req, res) => {

@@ -2,7 +2,7 @@ const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
 const saveProject = async (req, res) => {
-    const { projectName, content } = req.body;
+    const { projectName, content } = req.query;
 
     if (!projectName || content === undefined) {
         console.error("[saveProject] Missing project name or content.");
@@ -23,6 +23,7 @@ const saveProject = async (req, res) => {
             fields: "files(id, name)",
         });
 
+        let projectFolderId;
         if (!projectFolderResponse.data.files.length) {
             console.log(`[saveProject] Project folder "${projectName}" not found. Creating new folder...`);
             const folderResponse = await drive.files.create({
@@ -31,9 +32,9 @@ const saveProject = async (req, res) => {
                     mimeType: "application/vnd.google-apps.folder",
                 },
             });
-            var projectFolderId = folderResponse.data.id;
+            projectFolderId = folderResponse.data.id;
         } else {
-            var projectFolderId = projectFolderResponse.data.files[0].id;
+            projectFolderId = projectFolderResponse.data.files[0].id;
         }
 
         console.log("[saveProject] Searching for content.txt in project folder...");
