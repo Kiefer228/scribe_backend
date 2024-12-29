@@ -68,7 +68,7 @@ const validateTokens = async () => {
 
     try {
         oauth2Client.setCredentials(tokens);
-        await oauth2Client.getAccessToken();
+        await oauth2Client.getAccessToken(); // Validate current access token
         console.log("[auth.js] Access token validated.");
         return true;
     } catch (error) {
@@ -93,11 +93,16 @@ const validateTokens = async () => {
 
 // API: Check authentication status
 const isAuthenticated = async (req, res) => {
-    const isValid = await validateTokens();
-    if (isValid) {
-        res.status(200).json({ authenticated: true });
-    } else {
-        res.status(401).json({ authenticated: false });
+    try {
+        const isValid = await validateTokens();
+        if (isValid) {
+            res.status(200).json({ authenticated: true });
+        } else {
+            res.status(401).json({ authenticated: false });
+        }
+    } catch (error) {
+        console.error("[auth.js] Error checking authentication status:", error.message);
+        res.status(500).json({ authenticated: false, error: "Internal Server Error" });
     }
 };
 
@@ -107,6 +112,7 @@ const authenticateGoogle = (req, res) => {
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: "offline",
             scope: ["https://www.googleapis.com/auth/drive.file"],
+            prompt: "consent", // Ensures refresh token is always provided
         });
         console.log("[auth.js] Redirecting to Google OAuth URL.");
         res.redirect(authUrl);
@@ -131,7 +137,7 @@ const handleAuthCallback = async (req, res) => {
         console.log("[auth.js] Authentication successful.");
         res.redirect("https://scribeaiassistant.netlify.app/?auth=true");
     } catch (error) {
-        console.error("[auth.js] Error during OAuth callback:", error.message);
+        console.error("[auth.js] Error during OAuth callback:", error.response?.data || error.message);
         res.status(500).send("Authentication failed.");
     }
 };
