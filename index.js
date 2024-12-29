@@ -24,7 +24,7 @@ app.use(
                 callback(new Error("Not allowed by CORS"));
             }
         },
-        methods: ["GET", "POST", "OPTIONS"], // Include OPTIONS for preflight requests
+        methods: ["GET", "POST", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true, // Allow cookies and credentials
     })
@@ -38,18 +38,32 @@ app.use(bodyParser.json());
 
 // Middleware: Ensure user authentication for sensitive routes
 const ensureAuthenticated = async (req, res, next) => {
-    const authStatus = await isAuthenticated(req, res);
-    if (authStatus.authenticated) {
-        next();
-    } else {
-        res.status(401).json({ error: "Unauthorized access. Please authenticate first." });
+    try {
+        const authStatus = await isAuthenticated(req, res);
+        if (authStatus && authStatus.authenticated) {
+            next();
+        } else {
+            console.warn("[index.js] Unauthorized access attempt.");
+            res.status(401).json({ error: "Unauthorized access. Please authenticate first." });
+        }
+    } catch (error) {
+        console.error("[index.js] Error in ensureAuthenticated middleware:", error.message || error);
+        res.status(500).json({ error: "Internal Server Error during authentication check." });
     }
 };
 
 // Routes: Authentication
 app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
-app.get("/auth/status", isAuthenticated);
+app.get("/auth/status", async (req, res) => {
+    try {
+        const status = await isAuthenticated(req, res);
+        res.status(200).json(status);
+    } catch (error) {
+        console.error("[index.js] Error checking authentication status:", error.message);
+        res.status(500).json({ error: "Failed to check authentication status." });
+    }
+});
 app.post("/auth/logout", logout);
 
 // Routes: Project Management
@@ -57,6 +71,7 @@ app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) =
     const { projectName } = req.body;
 
     if (!projectName) {
+        console.error("[index.js] Missing project name in createHierarchy request.");
         return res.status(400).json({ error: "Project name is required." });
     }
 
@@ -64,7 +79,7 @@ app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) =
         await createHierarchy({ projectName });
         res.status(200).json({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("[index.js] Error creating project hierarchy:", error.message);
+        console.error("[index.js] Error creating project hierarchy:", error.message || error);
         res.status(500).json({ error: "Failed to create project hierarchy." });
     }
 });
@@ -73,15 +88,15 @@ app.get("/api/project/load", ensureAuthenticated, async (req, res) => {
     const { projectName } = req.query;
 
     if (!projectName) {
-        console.error("[index.js] Missing projectName query parameter.");
+        console.error("[index.js] Missing projectName query parameter in load request.");
         return res.status(400).json({ error: "Project name is required." });
     }
 
     try {
-        const content = await loadProject(projectName); // Pass projectName directly
+        const content = await loadProject(projectName);
         res.status(200).json({ content });
     } catch (error) {
-        console.error("[index.js] Error loading project:", error.message);
+        console.error("[index.js] Error loading project:", error.message || error);
         res.status(500).json({ error: "Failed to load project." });
     }
 });
@@ -90,6 +105,7 @@ app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
     const { projectName, content } = req.body;
 
     if (!projectName || !content) {
+        console.error("[index.js] Missing projectName or content in save request.");
         return res.status(400).json({ error: "Project name and content are required." });
     }
 
@@ -97,7 +113,7 @@ app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
         await saveProject({ projectName, content });
         res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
     } catch (error) {
-        console.error("[index.js] Error saving project:", error.message);
+        console.error("[index.js] Error saving project:", error.message || error);
         res.status(500).json({ error: "Failed to save project." });
     }
 });
