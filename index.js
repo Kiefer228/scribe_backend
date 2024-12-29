@@ -13,7 +13,7 @@ const { saveProject } = require("./api/project/saveProject");
 
 const app = express();
 
-// Middleware
+// Middleware: Define allowed origins for CORS
 const allowedOrigins = ["http://localhost:3000", "https://scribeaiassistant.netlify.app"];
 app.use(
     cors({
@@ -30,21 +30,30 @@ app.use(
     })
 );
 
-// Handle Preflight Requests Globally
+// Middleware: Handle preflight requests
 app.options("*", cors());
 
-// Parse JSON request bodies
+// Middleware: Parse JSON request bodies
 app.use(bodyParser.json());
 
-// Routes
-// Authentication Routes
+// Middleware: Ensure user authentication for sensitive routes
+const ensureAuthenticated = async (req, res, next) => {
+    const authStatus = await isAuthenticated(req, res);
+    if (authStatus.authenticated) {
+        next();
+    } else {
+        res.status(401).json({ error: "Unauthorized access. Please authenticate first." });
+    }
+};
+
+// Routes: Authentication
 app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
 app.get("/auth/status", isAuthenticated);
 app.post("/auth/logout", logout);
 
-// Project Management Routes
-app.post("/api/project/createHierarchy", async (req, res) => {
+// Routes: Project Management
+app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) => {
     const { projectName } = req.body;
 
     if (!projectName) {
@@ -55,27 +64,29 @@ app.post("/api/project/createHierarchy", async (req, res) => {
         await createHierarchy({ projectName });
         res.status(200).json({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("Error creating project hierarchy:", error);
+        console.error("[index.js] Error creating project hierarchy:", error.message);
         res.status(500).json({ error: "Failed to create project hierarchy." });
     }
 });
 
-app.get("/api/project/load", async (req, res) => {
+app.get("/api/project/load", ensureAuthenticated, async (req, res) => {
     const { projectName } = req.query;
 
+    if (!projectName) {
+        console.error("[index.js] Missing projectName query parameter.");
+        return res.status(400).json({ error: "Project name is required." });
+    }
+
     try {
-        const content = await loadProject(projectName); // Pass projectName or load the first available
+        const content = await loadProject(projectName); // Pass projectName directly
         res.status(200).json({ content });
     } catch (error) {
-        console.error("Error loading project:", error.message || error);
-        if (error.message.includes("No projects found")) {
-            return res.status(404).json({ error: "No projects available. Please create a new project." });
-        }
+        console.error("[index.js] Error loading project:", error.message);
         res.status(500).json({ error: "Failed to load project." });
     }
 });
 
-app.post("/api/project/save", async (req, res) => {
+app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
     const { projectName, content } = req.body;
 
     if (!projectName || !content) {
@@ -86,7 +97,7 @@ app.post("/api/project/save", async (req, res) => {
         await saveProject({ projectName, content });
         res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
     } catch (error) {
-        console.error("Error saving project:", error.message || error);
+        console.error("[index.js] Error saving project:", error.message);
         res.status(500).json({ error: "Failed to save project." });
     }
 });
@@ -96,14 +107,14 @@ app.get("/", (req, res) => {
     res.json({ message: "Backend is working!" });
 });
 
-// Handle Undefined Routes
+// Catch-all Route for Undefined Routes
 app.use((req, res) => {
     res.status(404).json({ error: "Route not found" });
 });
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
-    console.error("Unhandled server error:", err.message || err);
+    console.error("[index.js] Unhandled server error:", err.message || err);
     res.status(500).json({ error: "Internal Server Error" });
 });
 
