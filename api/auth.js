@@ -6,9 +6,10 @@ const path = require("path");
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URL;
+const SCOPES = process.env.GOOGLE_OAUTH_SCOPES || ["https://www.googleapis.com/auth/drive.file"];
 
 if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
-    console.error("Missing Google OAuth environment variables.");
+    throw new Error("[auth.js] Missing required Google OAuth environment variables.");
 }
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
@@ -46,8 +47,6 @@ const removeTokens = () => {
         if (fs.existsSync(tokenFilePath)) {
             fs.unlinkSync(tokenFilePath); // Delete the token file
             console.log("[Logout] Tokens removed successfully.");
-        } else {
-            console.log("[Logout] No tokens found to remove.");
         }
     } catch (error) {
         console.error("[Logout] Error removing tokens:", error);
@@ -59,28 +58,31 @@ const validateTokens = async () => {
     try {
         const tokens = loadTokens();
         if (!tokens || !tokens.access_token) {
+            console.log("[validateTokens] No valid tokens found. Re-authentication required.");
             return false;
         }
 
-        // Test API call to validate the access token
         oauth2Client.setCredentials(tokens);
+
+        // Test the access token
         try {
             await oauth2Client.getAccessToken();
             return true;
         } catch {
-            console.log("Access token expired. Attempting to refresh...");
+            console.log("[validateTokens] Access token expired. Attempting to refresh...");
             if (tokens.refresh_token) {
                 const refreshedTokens = await oauth2Client.refreshAccessToken();
                 oauth2Client.setCredentials(refreshedTokens.credentials);
                 saveTokens(refreshedTokens.credentials);
                 return true;
             } else {
-                console.log("No refresh token available.");
+                console.log("[validateTokens] No refresh token available. Re-authentication required.");
+                removeTokens(); // Clear any invalid tokens
                 return false;
             }
         }
     } catch (error) {
-        console.error("Error validating tokens:", error);
+        console.error("[validateTokens] Error validating tokens:", error);
         return false;
     }
 };
@@ -88,11 +90,7 @@ const validateTokens = async () => {
 // Check if user is authenticated
 const isAuthenticated = async (req, res) => {
     const isValid = await validateTokens();
-    if (isValid) {
-        res.status(200).json({ authenticated: true });
-    } else {
-        res.status(401).json({ authenticated: false });
-    }
+    res.status(isValid ? 200 : 401).json({ authenticated: isValid });
 };
 
 // Generate Google OAuth URL
@@ -100,7 +98,7 @@ const authenticateGoogle = (req, res) => {
     try {
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: "offline",
-            scope: ["https://www.googleapis.com/auth/drive.file"],
+            scope: SCOPES,
         });
         res.redirect(authUrl);
     } catch (error) {
@@ -130,6 +128,8 @@ const handleAuthCallback = async (req, res) => {
 const logout = (req, res) => {
     try {
         removeTokens();
+        oauth2Client.setCredentials(null); // Clear credentials in memory
+        console.log("[Logout] User logged out successfully.");
         res.status(200).json({ message: "Successfully logged out." });
     } catch (error) {
         console.error("[Logout] Error during logout:", error);
