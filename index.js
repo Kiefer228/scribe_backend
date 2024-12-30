@@ -21,10 +21,11 @@ app.use(
             if (!origin || allowedOrigins.includes(origin)) {
                 callback(null, true);
             } else {
+                console.error(`[CORS] Blocked origin: ${origin}`);
                 callback(new Error("Not allowed by CORS"));
             }
         },
-        methods: ["GET", "POST", "OPTIONS"],
+        methods: ["GET", "POST", "OPTIONS"], // Allow OPTIONS for preflight requests
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true, // Allow cookies and credentials
     })
@@ -39,15 +40,15 @@ app.use(bodyParser.json());
 // Middleware: Ensure user authentication for sensitive routes
 const ensureAuthenticated = async (req, res, next) => {
     try {
-        const authStatus = await isAuthenticated(req, res);
-        if (authStatus && authStatus.authenticated) {
+        const authStatus = await isAuthenticated(req);
+        if (authStatus?.authenticated) {
             next();
         } else {
-            console.warn("[index.js] Unauthorized access attempt.");
+            console.warn("[ensureAuthenticated] Unauthorized access attempt.");
             res.status(401).json({ error: "Unauthorized access. Please authenticate first." });
         }
     } catch (error) {
-        console.error("[index.js] Error in ensureAuthenticated middleware:", error.message || error);
+        console.error("[ensureAuthenticated] Error:", error.message || error);
         res.status(500).json({ error: "Internal Server Error during authentication check." });
     }
 };
@@ -57,21 +58,28 @@ app.get("/auth/google", authenticateGoogle);
 app.get("/auth/callback", handleAuthCallback);
 app.get("/auth/status", async (req, res) => {
     try {
-        const status = await isAuthenticated(req, res);
+        const status = await isAuthenticated(req);
         res.status(200).json(status);
     } catch (error) {
-        console.error("[index.js] Error checking authentication status:", error.message);
+        console.error("[/auth/status] Error:", error.message || error);
         res.status(500).json({ error: "Failed to check authentication status." });
     }
 });
-app.post("/auth/logout", logout);
+app.post("/auth/logout", async (req, res) => {
+    try {
+        await logout(req, res);
+    } catch (error) {
+        console.error("[/auth/logout] Error:", error.message || error);
+        res.status(500).json({ error: "Failed to log out." });
+    }
+});
 
 // Routes: Project Management
 app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) => {
     const { projectName } = req.body;
 
     if (!projectName) {
-        console.error("[index.js] Missing project name in createHierarchy request.");
+        console.error("[/api/project/createHierarchy] Missing project name.");
         return res.status(400).json({ error: "Project name is required." });
     }
 
@@ -79,7 +87,7 @@ app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) =
         await createHierarchy({ projectName });
         res.status(200).json({ message: `Hierarchy for "${projectName}" created successfully.` });
     } catch (error) {
-        console.error("[index.js] Error creating project hierarchy:", error.message || error);
+        console.error("[/api/project/createHierarchy] Error:", error.message || error);
         res.status(500).json({ error: "Failed to create project hierarchy." });
     }
 });
@@ -88,7 +96,7 @@ app.get("/api/project/load", ensureAuthenticated, async (req, res) => {
     const { projectName } = req.query;
 
     if (!projectName) {
-        console.error("[index.js] Missing projectName query parameter in load request.");
+        console.error("[/api/project/load] Missing project name.");
         return res.status(400).json({ error: "Project name is required." });
     }
 
@@ -96,7 +104,7 @@ app.get("/api/project/load", ensureAuthenticated, async (req, res) => {
         const content = await loadProject(projectName);
         res.status(200).json({ content });
     } catch (error) {
-        console.error("[index.js] Error loading project:", error.message || error);
+        console.error("[/api/project/load] Error:", error.message || error);
         res.status(500).json({ error: "Failed to load project." });
     }
 });
@@ -105,7 +113,7 @@ app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
     const { projectName, content } = req.body;
 
     if (!projectName || !content) {
-        console.error("[index.js] Missing projectName or content in save request.");
+        console.error("[/api/project/save] Missing projectName or content.");
         return res.status(400).json({ error: "Project name and content are required." });
     }
 
@@ -113,7 +121,7 @@ app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
         await saveProject({ projectName, content });
         res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
     } catch (error) {
-        console.error("[index.js] Error saving project:", error.message || error);
+        console.error("[/api/project/save] Error:", error.message || error);
         res.status(500).json({ error: "Failed to save project." });
     }
 });
@@ -125,12 +133,13 @@ app.get("/", (req, res) => {
 
 // Catch-all Route for Undefined Routes
 app.use((req, res) => {
+    console.warn(`[404] Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({ error: "Route not found" });
 });
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
-    console.error("[index.js] Unhandled server error:", err.message || err);
+    console.error("[Global Error Handler] Error:", err.message || err);
     res.status(500).json({ error: "Internal Server Error" });
 });
 
