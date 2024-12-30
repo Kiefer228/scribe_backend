@@ -170,4 +170,3 @@ module.exports = {
     isAuthenticated,
     logout,
 };
-xx
