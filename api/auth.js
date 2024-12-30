@@ -131,10 +131,23 @@ const handleAuthCallback = async (req, res) => {
         oauth2Client.setCredentials(tokens);
         await saveTokens(tokens);
         console.log("[auth.js] Authentication successful.");
-        res.redirect("https://scribeaiassistant.netlify.app/?auth=true");
+
+        // Redirect to frontend with token
+        const authToken = tokens.access_token;
+        if (!authToken) {
+            console.error("[auth.js] Access token missing from tokens response.");
+            return res.status(500).send("Failed to retrieve access token.");
+        }
+
+        const frontendUrl = `https://scribeaiassistant.netlify.app/?token=${authToken}`;
+        console.log(`[auth.js] Redirecting to frontend: ${frontendUrl}`);
+        res.redirect(frontendUrl);
     } catch (error) {
         console.error("[auth.js] Error during OAuth callback:", error.message);
-        res.redirect("https://scribeaiassistant.netlify.app/?auth=false");
+        const frontendUrl = `https://scribeaiassistant.netlify.app/?auth=false&error=${encodeURIComponent(
+            error.message
+        )}`;
+        res.redirect(frontendUrl);
     }
 };
 
@@ -157,3 +170,4 @@ module.exports = {
     isAuthenticated,
     logout,
 };
+xx
