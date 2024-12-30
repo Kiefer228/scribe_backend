@@ -1,3 +1,4 @@
+// Required modules
 const { google } = require("googleapis");
 const fs = require("fs").promises;
 const path = require("path");
@@ -22,6 +23,10 @@ const loadTokens = async () => {
     try {
         const data = await fs.readFile(TOKEN_FILE_PATH, "utf8");
         const tokens = JSON.parse(data);
+        if (tokens.expiry_date && Date.now() > tokens.expiry_date) {
+            console.warn("[auth.js] Stored tokens are expired.");
+            return null;
+        }
         oauth2Client.setCredentials(tokens);
         console.log("[auth.js] Tokens loaded successfully.");
         return tokens;

@@ -1,6 +1,8 @@
+// Required modules
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const rateLimit = require("express-rate-limit");
 const {
     authenticateGoogle,
     handleAuthCallback,
@@ -13,8 +15,12 @@ const { saveProject } = require("./api/project/saveProject");
 
 const app = express();
 
-// Middleware: Define allowed origins for CORS
-const allowedOrigins = ["http://localhost:3000", "https://scribeaiassistant.netlify.app"];
+// Middleware: Define allowed origins for CORS dynamically
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+    "http://localhost:3000",
+    "https://scribeaiassistant.netlify.app",
+];
+
 app.use(
     cors({
         origin: (origin, callback) => {
@@ -25,9 +31,9 @@ app.use(
                 callback(new Error("Not allowed by CORS"));
             }
         },
-        methods: ["GET", "POST", "OPTIONS"], // Allow OPTIONS for preflight requests
+        methods: ["GET", "POST", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
-        credentials: true, // Allow cookies and credentials
+        credentials: true,
     })
 );
 
@@ -36,6 +42,13 @@ app.options("*", cors());
 
 // Middleware: Parse JSON request bodies
 app.use(bodyParser.json());
+
+// Rate Limiter: Protect authentication routes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: { error: "Too many requests from this IP, please try again later." },
+});
 
 // Middleware: Ensure user authentication for sensitive routes
 const ensureAuthenticated = async (req, res, next) => {
@@ -54,9 +67,9 @@ const ensureAuthenticated = async (req, res, next) => {
 };
 
 // Routes: Authentication
-app.get("/auth/google", authenticateGoogle);
-app.get("/auth/callback", handleAuthCallback);
-app.get("/auth/status", async (req, res) => {
+app.get("/auth/google", authLimiter, authenticateGoogle);
+app.get("/auth/callback", authLimiter, handleAuthCallback);
+app.get("/auth/status", authLimiter, async (req, res) => {
     try {
         const status = await isAuthenticated(req);
         res.status(200).json(status);
@@ -65,7 +78,7 @@ app.get("/auth/status", async (req, res) => {
         res.status(500).json({ error: "Failed to check authentication status." });
     }
 });
-app.post("/auth/logout", async (req, res) => {
+app.post("/auth/logout", authLimiter, async (req, res) => {
     try {
         await logout(req, res);
     } catch (error) {
@@ -85,7 +98,7 @@ app.post("/api/project/createHierarchy", ensureAuthenticated, async (req, res) =
 
     try {
         await createHierarchy({ projectName });
-        res.status(200).json({ message: `Hierarchy for "${projectName}" created successfully.` });
+        res.status(200).json({ message: `Hierarchy for \"${projectName}\" created successfully.` });
     } catch (error) {
         console.error("[/api/project/createHierarchy] Error:", error.message || error);
         res.status(500).json({ error: "Failed to create project hierarchy." });
@@ -119,7 +132,7 @@ app.post("/api/project/save", ensureAuthenticated, async (req, res) => {
 
     try {
         await saveProject({ projectName, content });
-        res.status(200).json({ message: `Project "${projectName}" saved successfully.` });
+        res.status(200).json({ message: `Project \"${projectName}\" saved successfully.` });
     } catch (error) {
         console.error("[/api/project/save] Error:", error.message || error);
         res.status(500).json({ error: "Failed to save project." });

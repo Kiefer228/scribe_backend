@@ -1,3 +1,4 @@
+// Required modules
 const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
@@ -12,14 +13,14 @@ const saveProject = async ({ projectName, content }) => {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    console.log(`[saveProject] Searching for project folder: "${projectName}"`);
+    console.log(`[saveProject] Searching for project folder: \"${projectName}\"`);
     const projectFolderResponse = await drive.files.list({
         q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: "files(id, name)",
     });
 
     if (!projectFolderResponse.data.files.length) {
-        throw new Error(`Project folder "${projectName}" not found.`);
+        throw new Error(`Project folder \"${projectName}\" not found.`);
     }
 
     const projectFolderId = projectFolderResponse.data.files[0].id;
@@ -59,7 +60,7 @@ const saveProject = async ({ projectName, content }) => {
         console.log("[saveProject] content.txt updated successfully.");
     }
 
-    return { message: `Project "${projectName}" saved successfully.` };
+    return { message: `Project \"${projectName}\" saved successfully.` };
 };
 
 module.exports = { saveProject };

@@ -1,7 +1,8 @@
+// Required modules
 const { google } = require("googleapis");
 const { oauth2Client } = require("../auth");
 
-const createHierarchy = async (projectName) => {
+const createHierarchy = async ({ projectName }) => {
     if (!projectName) {
         throw new Error("Project name is required.");
     }
@@ -12,14 +13,14 @@ const createHierarchy = async (projectName) => {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    console.log(`[createHierarchy] Checking for existing project folder: "${projectName}"`);
+    console.log(`[createHierarchy] Checking for existing project folder: \"${projectName}\"`);
     const projectFolderResponse = await drive.files.list({
         q: `name='${projectName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: "files(id, name)",
     });
 
     if (projectFolderResponse.data.files.length) {
-        throw new Error(`Project folder "${projectName}" already exists.`);
+        throw new Error(`Project folder \"${projectName}\" already exists.`);
     }
 
     console.log("[createHierarchy] Creating new project folder...");
@@ -51,7 +52,7 @@ const createHierarchy = async (projectName) => {
 
     console.log("[createHierarchy] Created default content.txt successfully.");
 
-    return { projectFolderId, message: `Project "${projectName}" created successfully.` };
+    return { projectFolderId, message: `Project \"${projectName}\" created successfully.` };
 };
 
 module.exports = { createHierarchy };
