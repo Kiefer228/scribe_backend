@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "scribe_backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,6 +13,8 @@
     "express": "^4.21.2",
     "googleapis": "^144.0.0",
     "crypto-js": "^4.1.1",
-    "express-rate-limit": "^6.7.0"
+    "express-rate-limit": "^6.7.0",
+    "node-cache": "^5.1.2",
+    "crypto-browserify": "^3.12.0"
   }
 }
