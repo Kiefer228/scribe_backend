@@ -7,6 +7,7 @@ const path = require("path");
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URL;
+const TOKEN_FILE_PATH = process.env.TOKEN_FILE_PATH || path.join(__dirname, "token.json");
 
 if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
     console.error("[auth.js] Missing Google OAuth environment variables.");
@@ -15,8 +16,17 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
-// Token Storage Path
-const TOKEN_FILE_PATH = path.join(__dirname, "token.json");
+// Validate environment variables early
+const validateEnvVariables = () => {
+    const requiredEnv = ["CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URL"];
+    for (const variable of requiredEnv) {
+        if (!process.env[variable]) {
+            console.error(`[auth.js] Missing required environment variable: ${variable}`);
+            process.exit(1);
+        }
+    }
+};
+validateEnvVariables();
 
 // Helper: Load tokens from storage
 const loadTokens = async () => {
@@ -74,7 +84,10 @@ const validateTokens = async () => {
 
     try {
         oauth2Client.setCredentials(tokens);
-        await oauth2Client.getAccessToken(); // Validate current access token
+        await Promise.race([
+            oauth2Client.getAccessToken(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout validating access token")), 5000))
+        ]); // Validate current access token
         console.log("[auth.js] Access token validated.");
         return true;
     } catch (error) {
@@ -82,9 +95,12 @@ const validateTokens = async () => {
         if (tokens.refresh_token) {
             try {
                 const refreshedTokens = await oauth2Client.refreshAccessToken();
+                const { expiry_date, access_token } = refreshedTokens.credentials;
                 oauth2Client.setCredentials(refreshedTokens.credentials);
                 await saveTokens(refreshedTokens.credentials);
-                console.log("[auth.js] Access token refreshed successfully.");
+                console.log(
+                    `[auth.js] Access token refreshed successfully. Expiry: ${new Date(expiry_date).toISOString()}`
+                );
                 return true;
             } catch (refreshError) {
                 console.error("[auth.js] Error refreshing access token:", refreshError.message);
@@ -116,6 +132,11 @@ const authenticateGoogle = (req, res) => {
             scope: ["https://www.googleapis.com/auth/drive.file"],
         });
         console.log("[auth.js] Redirecting to Google OAuth URL.");
+        if (process.env.NODE_ENV === "development") {
+            console.log(`[auth.js] OAuth URL (debug mode): ${authUrl}`);
+        } else {
+            console.log("[auth.js] OAuth URL generated, sensitive data hidden in logs.");
+        }
         res.redirect(authUrl);
     } catch (error) {
         console.error("[auth.js] Error generating Google OAuth URL:", error.message);
